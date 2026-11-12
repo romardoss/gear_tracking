@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="uk"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QR-генератор спорядження (POC)</title>
+<link rel="stylesheet" href="style.css">
+<script src="vendor/qrcode.min.js"></script>
+<script src="vendor/jspdf.umd.min.js"></script>
+<script src="data.js"></script>
+</head><body><main>
+<h1>QR-генератор спорядження <span class="badge">POC</span></h1>
+<p class="muted">Демо з трьома замоканими предметами. QR містить лише посилання + ID; усі дані — на сторінці предмета.</p>
+
+<div class="card"><h2>Предмети</h2>
+<table id="items"><tr><th>ID</th><th></th><th>Назва</th><th>За ким</th></tr></table></div>
+
+<div class="card"><h2>Налаштування QR</h2>
+<label>Базове посилання (порожньо = автоматично)</label>
+<input type="text" id="base" placeholder="">
+<p class="muted">Зараз: <b id="baseNow"></b><br>Приклад: <span id="example"></span></p>
+<label>Розмір QR, мм</label><input type="number" id="qrmm" min="10" max="100" value="30">
+<label>Розмір шрифту ID, pt</label><input type="number" id="idpt" min="6" max="60" value="14">
+<label style="font-weight:400"><input type="checkbox" id="cut" checked> Лінії різання</label>
+<label>ID для друку (1-3, 2; порожньо = усі)</label><input type="text" id="ids" placeholder="1-3">
+<h3>Попередній перегляд</h3><div class="preview" id="preview"></div>
+<p><button id="pdf">Експорт у PDF</button></p></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const defaultBase = () => location.href.replace(/[^/]*([?#].*)?$/, "").replace(/\/$/, "");
+const base = () => ($("base").value.trim() || defaultBase()).replace(/\/$/, "");
+const urlFor = id => `${base()}/i.html?id=${id}`;
+const pad = id => String(id).padStart(4, "0");
+const KEY = "qr-poc-settings";
+
+try { const s = JSON.parse(localStorage.getItem(KEY) || "{}");
+  for (const k of ["base","qrmm","idpt","ids"]) if (s[k] != null) $(k).value = s[k]; if (s.cut != null) $("cut").checked = s.cut; } catch {}
+
+function qrFor(url) { const q = qrcode(0, "H"); q.addData(url); q.make(); return q; }
+
+function parseIds(t) {
+  const all = ITEMS.map(i => i.id); t = t.trim(); if (!t) return all;
+  const out = new Set();
+  for (const p of t.split(/[,;]/)) { const m = p.trim().match(/^(\d+)(?:\s*-\s*(\d+))?$/); if (!m) continue;
+    for (let i = +m[1]; i <= +(m[2] || m[1]); i++) out.add(i); }
+  return [...out].filter(i => all.includes(i)).sort((a, b) => a - b);
+}
+
+function render() {
+  try { localStorage.setItem(KEY, JSON.stringify({ base: $("base").value, qrmm: $("qrmm").value, idpt: $("idpt").value, ids: $("ids").value, cut: $("cut").checked })); } catch {}
+  $("baseNow").textContent = base(); $("example").textContent = urlFor(1);
+  $("preview").innerHTML = parseIds($("ids").value).map(id => {
+    const q = qrFor(urlFor(id));
+    return `<div class="label">${q.createSvgTag({ cellSize: 3, margin: 4, scalable: true }).replace("<svg", `<svg width="${$("qrmm").value * 3.78}" height="${$("qrmm").value * 3.78}"`)}<b>ID ${pad(id)}</b></div>`;
+  }).join("");
+}
+$("items").insertAdjacentHTML("beforeend", ITEMS.map(i => `<tr><td>${pad(i.id)}</td><td><img class="thumb" src="${i.photo}" alt=""></td><td><a href="i.html?id=${i.id}">${i.name}</a></td><td>${i.holder}</td></tr>`).join(""));
+for (const id of ["base","qrmm","idpt","ids","cut"]) $(id).addEventListener("input", render);
+render();
+
+$("pdf").onclick = () => {
+  const ids = parseIds($("ids").value); if (!ids.length) return alert("Немає предметів");
+  const qrmm = +$("qrmm").value, pt = +$("idpt").value, cut = $("cut").checked;
+  const doc = new jspdf.jsPDF({ unit: "mm", format: "a4" });
+  doc.setFont("helvetica", "bold"); doc.setFontSize(pt);
+  const margin = 10, gap = 2, W = 210, H = 297;
+  const tw = Math.max(...ids.map(i => doc.getTextWidth(`ID ${pad(i)}`)));
+  const cw = qrmm + 2 + gap + tw + 3, ch = qrmm + 2;
+  const cols = Math.max(1, Math.floor((W - 2 * margin) / cw)), rows = Math.max(1, Math.floor((H - 2 * margin) / ch));
+  ids.forEach((id, n) => {
+    const pos = n % (cols * rows); if (n && pos === 0) doc.addPage();
+    const x = margin + (pos % cols) * cw, y = margin + Math.floor(pos / cols) * ch;
+    if (cut) { doc.setDrawColor(150); doc.setLineWidth(0.1); doc.setLineDashPattern([1, 1], 0); doc.rect(x, y, cw, ch); doc.setLineDashPattern([], 0); }
+    const q = qrFor(urlFor(id)), N = q.getModuleCount(), m = qrmm / (N + 8);
+    doc.setFillColor(0, 0, 0);
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++)
+      if (q.isDark(r, c)) doc.rect(x + 1 + (c + 4) * m, y + 1 + (r + 4) * m, m + 0.02, m + 0.02, "F");
+    doc.text(`ID ${pad(id)}`, x + 1 + qrmm + gap, y + 1 + qrmm / 2 + pt * 0.12);
+  });
+  doc.save("qr-labels.pdf");
+};
+</script></main></body></html>

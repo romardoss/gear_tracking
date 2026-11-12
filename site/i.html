@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="uk"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Предмет</title><link rel="stylesheet" href="style.css">
+<script src="data.js"></script></head><body><main><div class="card" id="c"></div>
+<p><a href="index.html">← До генератора</a></p></main>
+<script>
+const id = +new URLSearchParams(location.search).get("id");
+const it = ITEMS.find(i => i.id === id), c = document.getElementById("c");
+if (!it) c.innerHTML = "<h2>Предмет не знайдено</h2>";
+else { document.title = it.name;
+  c.innerHTML = `<img class="big" src="${it.photo}" alt=""><h2>${it.name}</h2><p><b>За ким закріплено:</b> ${it.holder}</p><p class="muted">ID ${String(it.id).padStart(4, "0")}</p>`; }
+</script></body></html>
