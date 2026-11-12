@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% block title %}QR-коди{% endblock %}
+{% block body %}
+<div class="card"><h2>Налаштування QR</h2>
+<form method="post"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+<label>Базове посилання (порожньо = автоматично з хосту)</label>
+<input type="text" name="base_url" value="{{ s.base_url }}" placeholder="https://gear.example.com">
+<p class="muted">Зараз використовується: <b>{{ base }}</b><br>Приклад посилання в QR: {{ example }}<br>
+⚠ Після друку міток цю адресу змінювати не можна.</p>
+<label>Розмір QR, мм</label><input type="number" name="qr_mm" value="{{ s.qr_mm }}" min="10" max="100" step="1">
+<label>Розмір шрифту ID, pt</label><input type="number" name="id_pt" value="{{ s.id_pt }}" min="6" max="60" step="1">
+<label style="font-weight:400"><input type="checkbox" name="cut_lines" {{ 'checked' if s.cut_lines=='1' }}> Лінії різання навколо міток</label>
+<p><button>Зберегти</button></p></form></div>
+<div class="card"><h2>Експорт у PDF</h2>
+<form method="get" action="{{ url_for('qr_pdf') }}" target="_blank">
+<label>ID для друку (напр. 1-10, 15; порожньо = усі, {{ count }} шт.)</label>
+<input type="text" name="ids" placeholder="1-10, 15">
+<p><button>Створити PDF</button></p></form></div>{% endblock %}

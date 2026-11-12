@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% block title %}{{ item.name }}{% endblock %}
+{% block body %}<div class="card">
+{% if item.photo %}<img class="big" src="{{ url_for('photo', name=item.photo) }}" alt="">{% endif %}
+<h2>{{ item.name }}</h2>
+<p><b>За ким закріплено:</b> {{ item.holder or '—' }}</p>
+<p class="muted">ID {{ '%04d' % item.id }}</p></div>{% endblock %}

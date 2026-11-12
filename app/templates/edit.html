@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% block title %}Предмет{% endblock %}
+{% block body %}<div class="card"><h2>{{ 'Редагування ID %04d' % item.id if item else 'Новий предмет' }}</h2>
+<form method="post" enctype="multipart/form-data"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+<label>Назва</label><input type="text" name="name" value="{{ form.name or '' }}" required>
+<label>За ким закріплено (ім'я та прізвище)</label><input type="text" name="holder" value="{{ form.holder or '' }}">
+<label>Фото</label>
+{% if item and item.photo %}<p><img class="thumb" style="width:120px;height:120px" src="{{ url_for('photo', name=item.photo) }}" alt=""></p>
+<label style="font-weight:400"><input type="checkbox" name="remove_photo"> Видалити фото</label>{% endif %}
+<input type="file" name="photo" accept="image/*">
+<p class="row"><button>Зберегти</button><a href="{{ url_for('admin_items') }}">Скасувати</a></p></form></div>{% endblock %}
